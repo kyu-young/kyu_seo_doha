@@ -2404,7 +2404,14 @@
           }
           const name = openedFilename || 'list_extract_fix.xlsx';
           saveAs(new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), name);
-          alert('다운로드로 저장했습니다. (원본 덮어쓰기는 브라우저에서 지원되지 않을 수 있습니다)');
+          
+          // 모바일/Safari 안내
+          if (isIOS || isSafari) {
+            alert('✅ 저장 완료!\n\n📥 파일이 다운로드되었습니다.\n\n💡 계속 작업하려면:\n1. 다운로드된 파일을 찾으세요\n2. "파일 열기"로 다시 업로드하세요\n\n(모바일에서는 원본 덮어쓰기가 불가능합니다)');
+          } else {
+            alert('다운로드로 저장했습니다. (원본 덮어쓰기는 브라우저에서 지원되지 않을 수 있습니다)');
+          }
+          
           try { processPendingPresetUses(); } catch(_){ }
           modified.clear();
           deletedRows.clear();
@@ -2797,10 +2804,42 @@
     document.getElementById('fileInput').addEventListener('change', async (e)=>{
       const f = e.target.files && e.target.files[0];
       if (!f) return;
-      openedFilename = f.name; document.getElementById('fileLabel').textContent = f.name;
+      
+      // 모바일: 파일명 저장 & 표시
+      openedFilename = f.name; 
+      document.getElementById('fileLabel').textContent = f.name;
+      
+      // 모바일에서는 fileHandle 없음 (덮어쓰기 불가)
+      fileHandle = null;
+      
+      // 버튼 활성화
+      const urlBtn=document.getElementById('urlManagerBtn'); if (urlBtn) urlBtn.disabled=false;
+      const applyBtn=document.getElementById('applyConfirmBtn'); if (applyBtn) applyBtn.disabled=false;
+      const subBtn=document.getElementById('submitConfirmBtn'); if (subBtn) subBtn.disabled=false;
+      const asBtn=document.getElementById('autoSaveBtn'); if (asBtn) asBtn.disabled=false;
+      
       const buf = await f.arrayBuffer();
-      try { await ensureXLSX(); } catch(e){}
+      try { await ensureXLSX(); } catch(e){
+        console.error(e);
+        alert('파일 열기에 실패했습니다. (XLSX 로드)\n'+(e&&e.message?e.message:''));
+        return;
+      }
+      
+      // 상태 초기화
+      modified = new Map();
+      deletedRows = new Set();
+      selectedRows = new Set();
+      undoStack.length = 0;
+      
       loadWorkbook(buf);
+      
+      // 모바일 안내 (처음 열 때만)
+      if (isIOS && !localStorage.getItem('mobile_save_guide_shown')) {
+        setTimeout(() => {
+          alert('📱 모바일 안내\n\n저장 시 새 파일이 다운로드됩니다.\n다운로드된 파일을 다시 업로드하여 계속 작업하세요.');
+          localStorage.setItem('mobile_save_guide_shown', 'true');
+        }, 500);
+      }
     });
     // sidebar toolbar icons removed
     
