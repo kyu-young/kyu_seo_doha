@@ -433,38 +433,61 @@
         height: auto !important;
       }
       
-      /* 🍎 iOS Style Topbar - Glassmorphism */
+      /* 🍎 iOS Style Topbar - 컴팩트 & 미니멀 */
       .topbar { 
-        flex-wrap: wrap; 
-        padding: env(safe-area-inset-top, 12px) 16px 12px 16px;
-        gap: 10px; 
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px 16px !important;
+        gap: 12px !important; 
         position: sticky;
         top: 0;
         z-index: 50;
-        background: rgba(255, 255, 255, 0.8) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: saturate(180%) blur(20px);
         -webkit-backdrop-filter: saturate(180%) blur(20px);
         border-bottom: 0.5px solid var(--ios-gray5);
-        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        min-height: 52px;
       }
       .topbar .title { 
-        font-size: 17px; 
-        font-weight: 700;
+        font-size: 16px !important; 
+        font-weight: 700 !important;
         letter-spacing: -0.4px;
         color: var(--text);
+        white-space: nowrap;
       }
       .topbar .spacer { 
-        flex-basis: 100%; 
-        order: 10; 
-        height: 0; 
+        flex: 1 !important;
+        min-width: 10px;
       }
       .topbar .filelabel { 
-        font-size: 12px; 
-        flex: 1 1 auto; 
-        min-width: 0; 
-        overflow: hidden; 
-        text-overflow: ellipsis; 
-        white-space: nowrap; 
+        font-size: 11px !important;
+        color: var(--text-tertiary) !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+      }
+      
+      /* 상단 버튼들 숨기고 메뉴 버튼으로 대체 */
+      .topbar .btn.toolbar {
+        display: none !important;
+      }
+      
+      /* 메뉴 버튼 (우측 상단) */
+      #mobileMenuBtn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        min-height: 36px !important;
+        border-radius: 10px !important;
+        background: var(--ios-gray6) !important;
+        color: var(--text) !important;
+        border: none !important;
       }
       
       /* 🍎 iOS Style Buttons */
@@ -803,6 +826,89 @@
         to { opacity: 1; }
       }
       
+      /* 🍎 Mobile Menu Modal */
+      .mobile-menu-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        animation: fadeIn 0.2s ease-out;
+      }
+      .mobile-menu-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--panel-solid);
+        border-radius: 20px 20px 0 0;
+        padding: env(safe-area-inset-bottom, 20px) 0 20px 0;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .mobile-menu-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 20px 16px 20px;
+        border-bottom: 0.5px solid var(--ios-gray5);
+      }
+      .mobile-menu-header h3 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+        margin: 0;
+      }
+      .mobile-menu-header .close-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: var(--ios-gray6);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .mobile-menu-header .close-btn:active {
+        transform: scale(0.9);
+      }
+      .mobile-menu-items {
+        padding: 8px 12px;
+      }
+      .mobile-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 16px;
+        margin-bottom: 8px;
+        border: none;
+        border-radius: 14px;
+        background: var(--ios-gray6);
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .mobile-menu-item:active {
+        transform: scale(0.97);
+        background: var(--ios-gray5);
+      }
+      .mobile-menu-item svg {
+        color: var(--ios-blue);
+      }
+      
       /* 스크롤바 숨김 (깔끔한 UI) */
       .editor::-webkit-scrollbar,
       .sidebar .list::-webkit-scrollbar,
@@ -829,9 +935,20 @@
 </head>
 <body>
     <div class="topbar">
-    <div class="title">뚱수니의 엑셀 편집기</div>
-    <div class="spacer"></div>
+    <div class="title">뚱순이 편집기</div>
     <span class="filelabel" id="fileLabel">파일 미선택</span>
+    <div class="spacer"></div>
+    
+    <!-- 모바일 메뉴 버튼 (모바일에서만 표시) -->
+    <button id="mobileMenuBtn" class="btn" title="메뉴" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+        <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+        <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+      </svg>
+    </button>
+    
+    <!-- 데스크톱 버튼들 (모바일에서 숨김) -->
     <button id="openBtn" class="btn primary toolbar" title="파일 열기">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       파일 열기
@@ -1069,6 +1186,38 @@
     </svg>
     <span id="mobileItemCount" class="badge-count" style="display:none;">0</span>
   </button>
+  
+  <!-- 🍎 Mobile Menu Modal -->
+  <div id="mobileMenuModal" class="mobile-menu-modal" style="display:none;">
+    <div class="mobile-menu-content">
+      <div class="mobile-menu-header">
+        <h3>메뉴</h3>
+        <button id="closeMobileMenu" class="close-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mobile-menu-items">
+        <button id="mobileOpenBtn" class="mobile-menu-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>파일 열기</span>
+        </button>
+        <button id="mobileSaveBtn" class="mobile-menu-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2"/><path d="M7 3v6h8V3" stroke="currentColor" stroke-width="2"/><path d="M7 18h10" stroke="currentColor" stroke-width="2"/></svg>
+          <span>저장</span>
+        </button>
+        <button id="mobileSaveAsBtn" class="mobile-menu-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>다른 이름으로 저장</span>
+        </button>
+        <button id="mobileUrlBtn" class="mobile-menu-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 13a5 5 0 0 1 7-7l1 1m-4 10a5 5 0 0 1-7 7l-1-1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>URL 정리</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Floating theme toggle (moon/sun) -->
   <button id="themeFab" class="theme-fab" title="테마 전환" aria-pressed="false" aria-label="테마 전환">
@@ -3957,6 +4106,64 @@
       } catch(_) { /* ignore */ }
     })();
     
+    // 🍎 Mobile Menu Modal
+    (function(){
+      const menuBtn = document.getElementById('mobileMenuBtn');
+      const menuModal = document.getElementById('mobileMenuModal');
+      const closeBtn = document.getElementById('closeMobileMenu');
+      
+      if (!menuBtn || !menuModal || !closeBtn) return;
+      
+      // Show menu button only on mobile
+      const updateMenuVisibility = ()=>{
+        if (window.innerWidth <= 768){
+          menuBtn.style.display = 'flex';
+        } else {
+          menuBtn.style.display = 'none';
+          menuModal.style.display = 'none';
+        }
+      };
+      
+      updateMenuVisibility();
+      window.addEventListener('resize', updateMenuVisibility);
+      
+      // Open menu
+      menuBtn.addEventListener('click', ()=>{
+        menuModal.style.display = 'block';
+      });
+      
+      // Close menu
+      const closeMenu = ()=>{
+        menuModal.style.display = 'none';
+      };
+      
+      closeBtn.addEventListener('click', closeMenu);
+      menuModal.addEventListener('click', (e)=>{
+        if (e.target === menuModal) closeMenu();
+      });
+      
+      // Menu item actions
+      document.getElementById('mobileOpenBtn').addEventListener('click', ()=>{
+        closeMenu();
+        document.getElementById('openBtn').click();
+      });
+      
+      document.getElementById('mobileSaveBtn').addEventListener('click', ()=>{
+        closeMenu();
+        document.getElementById('saveBtn').click();
+      });
+      
+      document.getElementById('mobileSaveAsBtn').addEventListener('click', ()=>{
+        closeMenu();
+        document.getElementById('saveAsBtn').click();
+      });
+      
+      document.getElementById('mobileUrlBtn').addEventListener('click', ()=>{
+        closeMenu();
+        document.getElementById('urlManagerBtn').click();
+      });
+    })();
+    
     // Mobile sidebar toggle
     (function(){
       const sidebar = document.querySelector('.sidebar');
@@ -3980,11 +4187,11 @@
 
       // Toggle sidebar
       toggle.addEventListener('click', ()=>{
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('show');
+        const isOpen = sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('show', isOpen);
       });
 
-      // Close on overlay click
+      // ✅ Close on overlay click (문제 해결!)
       overlay.addEventListener('click', ()=>{
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('show');
