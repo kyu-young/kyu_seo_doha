@@ -513,6 +513,29 @@
         transform: scale(0.96);
       }
       
+      /* 🍎 Submit Segment (TRUE/FALSE 버튼) */
+      .seg-row {
+        gap: 8px !important;
+      }
+      .seg-row button {
+        flex: 1 !important;
+        padding: 12px !important;
+        font-size: 14px !important;
+        border-radius: 12px !important;
+        background: var(--ios-gray6) !important;
+        color: var(--text-secondary) !important;
+        border: 0.5px solid var(--ios-gray5) !important;
+      }
+      .seg-row button.active {
+        background: var(--ios-blue) !important;
+        color: #fff !important;
+        border-color: var(--ios-blue) !important;
+        box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2) !important;
+      }
+      .seg-row button:active {
+        transform: scale(0.96);
+      }
+      
       /* 🍎 iOS Style Sections & Cards */
       .section { 
         padding: 16px; 
@@ -581,10 +604,39 @@
         line-height: 1.5 !important;
       }
       
-      /* 프리뷰: 적절한 높이 */
+      /* 🍎 iOS Style Preview Section */
+      .preview-head {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+      .preview-head .hint {
+        font-size: 12px !important;
+      }
+      .preview-head .right-actions {
+        width: 100% !important;
+        margin-left: 0 !important;
+      }
+      .preview-head #openNewTab {
+        width: 100% !important;
+        justify-content: center !important;
+        background: var(--ios-blue) !important;
+        color: #fff !important;
+        border: none !important;
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 12px rgba(0, 122, 255, 0.25) !important;
+      }
+      .preview-head #openNewTab:active {
+        transform: scale(0.98) !important;
+      }
       .preview { 
         height: 250px; 
         -webkit-overflow-scrolling: touch;
+        border-radius: 16px !important;
+        border: 0.5px solid var(--ios-gray5) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
       }
       
       /* 모달: 전체 화면 활용 */
@@ -2402,14 +2454,29 @@
             // 자동 저장 중 원본 덮어쓰기 불가한 환경: 조용히 패스 (다운로드 남발 방지)
             return false;
           }
-          const name = openedFilename || 'list_extract_fix.xlsx';
+          
+          // 모바일: 타임스탬프 파일명
+          let name = openedFilename || 'list_extract_fix.xlsx';
+          if (isIOS) {
+            // 모바일에서만 타임스탬프 추가
+            const now = new Date();
+            const timestamp = now.getFullYear() + 
+                            String(now.getMonth() + 1).padStart(2, '0') + 
+                            String(now.getDate()).padStart(2, '0') + '_' +
+                            String(now.getHours()).padStart(2, '0') + 
+                            String(now.getMinutes()).padStart(2, '0') + 
+                            String(now.getSeconds()).padStart(2, '0');
+            const baseName = name.replace(/\.xlsx$/i, '');
+            name = `${baseName}_mobile_${timestamp}.xlsx`;
+          }
+          
           saveAs(new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), name);
           
-          // 모바일/Safari 안내
-          if (isIOS || isSafari) {
-            alert('✅ 저장 완료!\n\n📥 파일이 다운로드되었습니다.\n\n💡 계속 작업하려면:\n1. 다운로드된 파일을 찾으세요\n2. "파일 열기"로 다시 업로드하세요\n\n(모바일에서는 원본 덮어쓰기가 불가능합니다)');
+          // 모바일: 안내 메시지
+          if (isIOS) {
+            alert('✅ 저장 완료!\n\n📥 파일명: ' + name + '\n\n💡 원본과 같은 폴더에 저장됩니다.');
           } else {
-            alert('다운로드로 저장했습니다. (원본 덮어쓰기는 브라우저에서 지원되지 않을 수 있습니다)');
+            alert('다운로드로 저장했습니다.');
           }
           
           try { processPendingPresetUses(); } catch(_){ }
