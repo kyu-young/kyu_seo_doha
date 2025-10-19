@@ -807,23 +807,33 @@
         touch-action: manipulation;
       }
       
-      /* 🍎 iOS Style Overlay */
+      /* 🍎 iOS Style Overlay - 더 진하고 명확하게 */
       .mobile-overlay { 
         display: none; 
         position: fixed; 
         inset: 0; 
-        background: rgba(0, 0, 0, 0.4); 
+        background: rgba(0, 0, 0, 0.65); /* 40% → 65%로 진하게! */
         z-index: 99; 
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        animation: fadeIn 0.2s ease-out;
+        animation: fadeIn 0.25s ease-out;
+        transition: opacity 0.25s ease-out;
       }
       .mobile-overlay.show { 
         display: block; 
+        opacity: 1;
       }
       @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from { 
+          opacity: 0; 
+          backdrop-filter: blur(0);
+          -webkit-backdrop-filter: blur(0);
+        }
+        to { 
+          opacity: 1; 
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
       }
       
       /* 🍎 Mobile Menu Modal */
@@ -2834,25 +2844,49 @@
       }
       async function submitViaForm(){
         try {
+          // 🍎 iOS 호환: 먼저 미저장 변경사항 체크 (async 호출 전에)
+          if (hasUnsavedChanges()){
+            // iOS Safari: 사용자 제스처가 끊어지면 form.submit() 차단됨
+            // 해결책: 저장 없이 바로 제출 (경고 메시지 표시)
+            if (!confirm('⚠️ 미저장 변경사항이 있습니다.\n\n저장하지 않고 제출하면 이전 저장 상태로 제출됩니다.\n\n그래도 제출하시겠습니까?\n\n(권장: 취소 → 저장 버튼 누르기 → 다시 제출)')){
+              return;
+            }
+          }
+          
           btn.disabled = true;
           const origHtml = btn.innerHTML;
           btn.innerHTML = '<span class="spinner"></span>&nbsp;제출 중...';
-          // 1) Ensure saved state before submit
-          if (hasUnsavedChanges()){
-            showToast('변경사항을 먼저 저장할게요');
-            await saveFile();
-            if (hasUnsavedChanges()) { showToast('저장에 실패했어요'); btn.disabled=false; return; }
-          }
+          
           // 2) Build payload
           const rows = buildSubmitRows();
-          if (!rows.length){ showToast('보낼 데이터가 없어요'); btn.disabled=false; return; }
+          if (!rows.length){ 
+            showToast('보낼 데이터가 없어요'); 
+            btn.disabled=false; 
+            btn.innerHTML = origHtml;
+            return; 
+          }
+          
           // 3) Submit via hidden form (CORS-free)
+          // 🍎 사용자 제스처 내에서 바로 실행 (async 없이)
           tf.value = TOKEN;
           rf.value = JSON.stringify(rows);
-          const onloadHandler = ()=>{ showToast('제출을 요청했어요'); btn.disabled=false; btn.innerHTML = origHtml; sink.removeEventListener('load', onloadHandler); };
+          const onloadHandler = ()=>{ 
+            showToast('제출을 요청했어요'); 
+            btn.disabled=false; 
+            btn.innerHTML = origHtml; 
+            sink.removeEventListener('load', onloadHandler); 
+          };
           sink.addEventListener('load', onloadHandler);
-          form.submit();
-        } catch(e){ btn.disabled=false; try{ btn.innerHTML = origHtml; }catch(_){} showToast('제출 실패'); }
+          
+          // setTimeout으로 UI 업데이트 후 제출 (iOS 호환성 향상)
+          setTimeout(()=>{ form.submit(); }, 50);
+          
+        } catch(e){ 
+          console.error('제출 오류:', e);
+          btn.disabled=false; 
+          try{ btn.innerHTML = origHtml; }catch(_){} 
+          showToast('제출 실패: ' + (e.message||'')); 
+        }
       }
       btn.addEventListener('click', submitViaForm);
     })();
@@ -3822,23 +3856,49 @@
         return [];
       }
       async function handleApply(){
-        if (!WEB_APP_URL){ showToast('웹앱 URL이 설정되지 않았어요'); return; }
+        if (!WEB_APP_URL){ 
+          alert('⚠️ 웹앱 URL이 설정되지 않았습니다.\n\nHTML 파일에서 submitForm의 action 속성을 확인해주세요.'); 
+          console.error('WEB_APP_URL이 비어있습니다. submitForm의 action을 설정하세요.');
+          return; 
+        }
+        
         btn.disabled = true;
         const orig = btn.innerHTML;
         btn.innerHTML = '<span class="spinner"></span>&nbsp;불러오는 중...';
+        
+        console.log('🍎 [컨펌 반영] JSONP 요청 시작:', WEB_APP_URL);
+        
         // States 전용 반영(폴백 없음). rows가 비면 아무 것도 반영하지 않음
         jsonp(WEB_APP_URL, { mode: 'states' }, (err, data)=>{
           btn.disabled=false; btn.innerHTML = orig;
-          if (err){ showToast('불러오기 실패'); return; }
-        const rows = asArray(data);
-        // 디버그 토스트: 서버에서 받은 상태 건수 표시
-        try {
-          const cT = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='T').length;
-          const cF = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='F').length;
-          const cD = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='D').length;
-          showToast(`서버 rows T:${cT} F:${cF} D:${cD}`);
-        } catch(_){ }
-          if (!rows.length){ showToast('상태(T/F/D) 데이터가 없어요'); return; }
+          
+          if (err){ 
+            console.error('🍎 [컨펌 반영] JSONP 오류:', err);
+            alert('❌ 불러오기 실패\n\n' + (err.message || err)); 
+            return; 
+          }
+          
+          console.log('🍎 [컨펌 반영] 서버 응답:', data);
+          
+          const rows = asArray(data);
+          
+          // 디버그 토스트: 서버에서 받은 상태 건수 표시
+          try {
+            const cT = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='T').length;
+            const cF = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='F').length;
+            const cD = rows.filter(r=> String((r.state||r.Status||r.status||'')).trim().toUpperCase().charAt(0)==='D').length;
+            console.log(`🍎 [컨펌 반영] 서버 rows T:${cT} F:${cF} D:${cD}`);
+            showToast(`서버 rows T:${cT} F:${cF} D:${cD}`);
+          } catch(e){ 
+            console.error('🍎 [컨펌 반영] 상태 카운트 오류:', e);
+          }
+          
+          if (!rows.length){ 
+            alert('상태(T/F/D) 데이터가 없습니다.\n\n서버에서 반환된 데이터를 확인해주세요.'); 
+            console.warn('🍎 [컨펌 반영] 빈 rows 배열');
+            return; 
+          }
+          
           applyConfirmedRows(rows);
         });
       }
