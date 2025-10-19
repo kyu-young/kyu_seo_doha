@@ -2474,7 +2474,7 @@
           
           // 모바일: 안내 메시지
           if (isIOS) {
-            alert('✅ 저장 완료!\n\n📥 파일명: ' + name + '\n\n💡 원본과 같은 폴더에 저장됩니다.');
+            alert('✅ 저장 완료!\n\n📥 파일명: ' + name + '\n\n📂 다운로드 폴더에 저장되었습니다.\n\n💡 파일 앱에서 원하는 위치로 이동하세요.');
           } else {
             alert('다운로드로 저장했습니다.');
           }
@@ -2903,7 +2903,7 @@
       // 모바일 안내 (처음 열 때만)
       if (isIOS && !localStorage.getItem('mobile_save_guide_shown')) {
         setTimeout(() => {
-          alert('📱 모바일 안내\n\n저장 시 새 파일이 다운로드됩니다.\n다운로드된 파일을 다시 업로드하여 계속 작업하세요.');
+          alert('📱 모바일 안내\n\n저장 시 타임스탬프가 포함된 새 파일이 다운로드 폴더에 저장됩니다.\n\n💡 다운로드된 파일을 다시 업로드하여 계속 작업하거나, 파일 앱에서 원하는 위치로 이동하세요.');
           localStorage.setItem('mobile_save_guide_shown', 'true');
         }, 500);
       }
@@ -3910,11 +3910,39 @@
     (function(){
       try {
         // Native leave guard (close/refresh/navigation)
-        window.addEventListener('beforeunload', (e)=>{
+        const beforeUnloadHandler = (e) => {
           try { if (!hasUnsavedChanges()) return; } catch(_) { return; }
           e.preventDefault();
-          e.returnValue = '';
-        });
+          e.returnValue = '변경사항이 저장되지 않았습니다. 정말 나가시겠습니까?';
+          return e.returnValue;
+        };
+        
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+        
+        // 🍎 iOS Safari 추가 지원 (iOS에서 beforeunload가 제한적이므로)
+        if (isIOS || isSafari) {
+          // pagehide 이벤트 (iOS에서 더 신뢰할 수 있음)
+          window.addEventListener('pagehide', beforeUnloadHandler, { capture: true });
+          
+          // visibilitychange 이벤트 (페이지 숨김 시)
+          document.addEventListener('visibilitychange', () => {
+            try {
+              if (document.visibilityState === 'hidden' && hasUnsavedChanges()) {
+                // 백그라운드로 갈 때 로컬스토리지에 임시 저장
+                try {
+                  const tempData = {
+                    modified: Array.from(modified.entries()),
+                    deletedRows: Array.from(deletedRows),
+                    timestamp: Date.now()
+                  };
+                  localStorage.setItem('doha_temp_changes', JSON.stringify(tempData));
+                  console.log('📦 임시 변경사항 저장됨');
+                } catch(_) {}
+              }
+            } catch(_) { }
+          });
+        }
+        
         // Back/forward guard via history sentinel; cancels back when dirty
         history.pushState({ doha_guard: 1 }, '', location.href);
         window.addEventListener('popstate', (ev)=>{
